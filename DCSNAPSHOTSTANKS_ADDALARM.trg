@@ -7,6 +7,8 @@ declare variable PREV_TIME TIMESTAMP;
 declare variable ZAPR_TIME TIMESTAMP;
 declare variable ID_LAST_ZAPR INTEGER;
 begin
+    if (new."TankID" <> 9) then -- исключаем из проверки виртуальную емкость № 9
+    begin
   /*Получаем имя склада (код АЗС), на котором произошло событие*/
   select "dcPointsOfSales"."PosName"
   from "dcPointsOfSales"
@@ -27,7 +29,7 @@ begin
 
   /* Находим следующую по времени запись в таблице "dcSnapshotsTanks"*/
     select  MIN("dcSnapshotsTanks"."SnapshotDate") from "dcSnapshotsTanks"
-    where "dcSnapshotsTanks"."TankID" = new."TankID" and "dcSnapshotsTanks"."SnapshotDate" >= :ZAPR_TIME
+    where "dcSnapshotsTanks"."TankID" = new."TankID" and "dcSnapshotsTanks"."SnapshotDate" > :ZAPR_TIME
     group by "dcSnapshotsTanks"."TankID"
     into PREV_TIME;
 
@@ -40,7 +42,8 @@ begin
     /*Проверяем величину отклонения*/
     if ((OLD_MASS - new."Mass") > 20) then
     begin
-        insert into "AGRO_FUEL_LEVEL_ALARM" ("DATETIME", "DIFFERENCE", "TANKID", "SNAPSHOTID", "POS_ID", "DATE_LAST_ZAPR","MASS_LAST_ZAPR", "CURRENT_MASS", "ID_LAST_ZAPR")
+        insert into "AGRO_FUEL_LEVEL_ALARM" ("DATADATETIME", "DIFFERENCE", "TANKID", "SNAPSHOTID", "POS_ID", "DATE_LAST_ZAPR","MASS_LAST_ZAPR", "CURRENT_MASS", "ID_LAST_ZAPR")
         VALUES (new."SnapshotDate",(:OLD_MASS - new."Mass"), new."TankID", new."SnapshotTankID", new."PointOfSalesID", :ZAPR_TIME, :OLD_MASS, new."Mass", :ID_LAST_ZAPR );
+    end
     end
 end
